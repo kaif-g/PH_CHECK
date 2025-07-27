@@ -1,0 +1,478 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soil PH Checker and Fertilizer Recommendation System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: skyblue;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .modal-dialog {
+            max-width: 400px;
+        }
+        .soil-ph-checker {
+            margin-bottom: 20px;
+        }
+        .fertilizer-recommendation {
+            margin-bottom: 20px;
+        }
+        .crop-information {
+            margin-bottom: 20px;
+        }
+        #main-content {
+            display: none;
+        }
+        .heading {
+            font-weight: bold;
+            color: black;   
+        }
+        .highlight {
+            color: #ffd700;             
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        nav {
+            background-color: skyblue;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-modal" class="modal fade" tabindex="-1" aria-labelledby="login-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="login-modal-label">Login</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input type="email" id="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" class="form-control" required>
+                    </div>
+                    <button class="btn btn-primary" onclick="login()">Login</button>
+                    <button class="btn btn-secondary" onclick="showRegisterModal()">Create Account</button>
+                    <p id="login-error" style="color: red;"></p>
+                    <div id="login-loader" class="text-center" style="display: none;">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="register-modal" class="modal fade" tabindex="-1" aria-labelledby="register-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="register-modal-label">Create Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="new-email" class="form-label">Email address</label>
+                        <input type="email" id="new-email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-password" class="form-label">New Password</label>
+                        <input type="password" id="new-password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="retype-password" class="form-label">Retype Password</label>
+                        <input type="password" id="retype-password" class="form-control" required>
+                    </div>
+                    <button class="btn btn-primary" onclick="register()">Create</button>
+                    <p id="register-error" style="color: red;"></p>
+                    <div id="register-loader" class="text-center" style="display: none;">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const loginModal = new bootstrap.Modal(document.getElementById('login-modal'));
+        const registerModal = new bootstrap.Modal(document.getElementById('register-modal'));
+        let users = {};
+        const crops = {
+            "Blueberries": {
+                "Botrytis": "Chlorothalonil",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Cranberries": {
+                "Botrytis": "Chlorothalonil",
+                "Phytophthora": "Copper"
+            },
+            "Strawberries": {
+                "Botrytis": "Chlorothalonil",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Raspberries": {
+                "Botrytis": "Chlorothalonil",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Blackberries": {
+                "Botrytis": "Chlorothalonil",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Currants": {
+                "Botrytis": "Chlorothalonil",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Potatoes": {
+                "Late Blight": "Copper",
+                "Early Blight": "Mancozeb"
+            },
+            "Carrots": {
+                "Powdery Mildew": "Sulfur",
+                "Root Rot": "Copper"
+            },
+            "Beets": {
+                "Powdery Mildew": "Sulfur",
+                "Leaf Spot": "Copper"
+            },
+            "Onions": {
+                "Downy Mildew": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Garlic": {
+                "Downy Mildew": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Peas": {
+                "Powdery Mildew": "Sulfur",
+                "Leaf Spot": "Copper"
+            },
+            "Broccoli": {
+                "Downy Mildew": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Cauliflower": {
+                "Downy Mildew": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Kale": {
+                "Downy Mildew": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Spinach": {
+                "Downy Mildew": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Cucumbers": {
+                "Powdery Mildew": "Sulfur",
+                "Scab": "Copper"
+            },
+            "Pumpkins": {
+                "Powdery Mildew": "Sulfur",
+                "Scab": "Copper"
+            },
+            "Corn": {
+                "Rust": "Copper",
+                "Smut": "Mancozeb"
+            },
+            "Wheat": {
+                "Rust": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Oats": {
+                "Rust": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Barley": {
+                "Rust": "Copper",
+                "Powdery Mildew": "Sulfur"
+            },
+            "Soybeans": {
+                "Phytophthora": "Copper",
+                "Downy Mildew": "Mancozeb"
+            },
+            "Alfalfa": {
+                "Phytophthora": "Copper",
+                "Downy Mildew": "Mancozeb"
+            },
+            "Clover": {
+                "Phytophthora": "Copper",
+                "Downy Mildew": "Mancozeb"
+            }
+        };
+        loginModal.show();
+        localStorage.setItem("loggedIn", "false");
+        function login() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const storedUsers = JSON.parse(localStorage.getItem("users"));
+            if (storedUsers && storedUsers[email] === password) {
+                document.getElementById("login-loader").style.display = "block";
+                setTimeout(() => {
+                    loginModal.hide();
+                    document.getElementById("main-content").style.display = "block";
+                    document.getElementById("login-loader").style.display = "none";
+                    localStorage.setItem("loggedIn", "true");
+                }, 1000);
+            } else {
+                document.getElementById("login-error").innerHTML = "Invalid email or password";
+            }
+        }
+        function register() {
+            const newEmail = document.getElementById("new-email").value;
+            const newPassword = document.getElementById("new-password").value;
+            const retypePassword = document.getElementById("retype-password").value;
+            if (newPassword === retypePassword) {
+                const storedUsers = JSON.parse(localStorage.getItem("users"));
+                if (storedUsers) {
+                    users = storedUsers;
+                }
+                users[newEmail] = newPassword;
+                localStorage.setItem("users", JSON.stringify(users));
+                document.getElementById("register-loader").style.display = "block";
+                setTimeout(() => {
+                    registerModal.hide();
+                    loginModal.show();
+                    document.getElementById("register-loader").style.display = "none";
+                }, 1000);
+            } else {
+                document.getElementById("register-error").innerHTML = "Passwords do not match";
+            }
+        }
+        function showRegisterModal() {
+            loginModal.hide();
+            registerModal.show();
+        }
+        function checkPH() {
+            const phValue = document.getElementById("ph-value").value;
+            let recommendedCrops = "";
+            if (phValue < 6.0) {
+                recommendedCrops = "Blueberries, Cranberries, Strawberries, Raspberries, Blackberries, Currants";
+            } else if (phValue < 6.5) {
+                recommendedCrops = "Potatoes, Carrots, Beets, Onions, Garlic, Peas";
+            } else if (phValue < 7.0) {
+                recommendedCrops = "Broccoli, Cauliflower, Kale, Spinach, Cucumbers, Pumpkins";
+            } else if (phValue < 7.5) {
+                recommendedCrops = "Corn, Wheat, Oats, Barley, Soybeans";
+            } else {
+                recommendedCrops = "Alfalfa, Clover";
+            }
+            populateCropDropdown(recommendedCrops);
+        }
+        function populateCropDropdown(cropsString) {
+            const cropSelect = document.getElementById("crop-select");
+            cropSelect.innerHTML = "";
+            const cropsArray = cropsString.split(", ");
+            for (const crop of cropsArray) {
+                const option = document.createElement("option");
+                option.value = crop;
+                option.text = crop;
+                cropSelect.appendChild(option);
+            }
+            cropSelect.addEventListener("change", getPesticides);
+            cropSelect.value = cropsArray[0];
+            getPesticides();
+        }
+        function getPesticides() {
+            const selectedCrop = document.getElementById("crop-select").value;
+            let pesticidesHtml = "";
+            if (crops[selectedCrop]) {
+                for (const disease in crops[selectedCrop]) {
+                    pesticidesHtml += `<p> Disease: ${disease}, Pesticide: ${crops[selectedCrop][disease]}</p>`;
+                }
+            } else {
+                pesticidesHtml = "No pesticides found for this crop.";
+            }
+            document.getElementById("pesticides").innerHTML = pesticidesHtml;
+        }
+        async function submitContactForm() {
+            try {
+                const name = document.getElementById("name").value;
+                const email = document.getElementById("contact-email").value;
+                const mobile = document.getElementById("mobile").value;
+                const message = document.getElementById("message").value;
+                const contactForm = {
+                    name: name,
+                    email: email,
+                    mobile: mobile,
+                    message: message
+                };
+                const response = await fetch('https://formsubmit.co/api/post/kreddymohan1927@gmail.com', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(contactForm)
+                });
+                if (response.ok) {
+                    document.getElementById("contact-form").reset();
+                    console.log("Form submitted successfully");
+                } else {
+                    console.log("Error submitting form:", response.status, await response.text());
+                }
+            } catch (error) {
+                console.log("Error submitting form:", error);
+            }
+        }
+        function showHome() {
+            document.getElementById("home").style.display = "block";
+            document.getElementById("about").style.display = "none";
+            document.getElementById("contact").style.display = "none";
+        }
+        function showAbout() {
+            document.getElementById("home").style.display = "none";
+            document.getElementById("about").style.display = "block";
+            document.getElementById("contact").style.display = "none";
+        }
+        function showContact() {
+            document.getElementById("home").style.display = "none";
+            document.getElementById("about").style.display = "none";
+            document.getElementById("contact").style.display = "block";
+        }
+        function logout() {
+            document.getElementById("main-content").style.display = "none";
+            loginModal.show();
+            localStorage.setItem("loggedIn", "false");
+        }
+        if(localStorage.getItem("loggedIn") == "true") {
+            loginModal.hide();
+            document.getElementById("main-content").style.display = "block";
+        }
+    </script>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><span class="heading">Soil PH Checker and Fertilizer Recommendation System</span></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                </ul>
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-list" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1h-10a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1h-10a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1h-10a.5.5 0 0 1-.5-.5z"/>
+                            </svg>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="#" onclick="showHome()">Home</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showAbout()">About</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showContact()">Contact</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div id="main-content">
+        <div id="home" style="display: block;">
+            <div class="container">
+                <h1 class="text-center"><span class="heading">Soil PH Checker and Fertilizer Recommendation System</span></h1>
+                <p>Welcome to the Soil PH Checker and Fertilizer Recommendation System. You are now logged in.</p>
+                <form>
+                    <div class="mb-3">
+                        <label for="ph-value" class="form-label">Enter pH value:</label>
+                        <input type="number" id="ph-value" class="form-control" step="0.1" required>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="checkPH()">Check pH</button>
+                </form>
+                <h2>Crop Selection and Pesticides</h2>
+                <div class="mb-3">
+                    <label for="crop-select" class="form-label">Select Crop:</label>
+                    <select id="crop-select" class="form-select">
+                    </select>
+                </div>
+                <div id="pesticides"></div>
+            </div>
+        </div>
+        <div id="about" style="display: none;">
+            <div class="container">
+                <h1 class="text-center"><span class="heading">About Us</span></h1>
+                <p>Soil pH is a measure of the acidity or alkalinity of the soil. It is an important factor in determining the suitability of the soil for plant growth. Most plants prefer a slightly acidic to neutral soil pH, ranging from 6.0 to 7.0. However, some plants like blueberries and azaleas require a more acidic soil pH, while others like alfalfa and clover require a more alkaline soil pH.</p>
+                <p>The importance of soil pH cannot be overstated. A soil pH that is too high or too low can affect the availability of nutrients to plants, leading to reduced growth and yields. For example, a soil pH that is too high can lead to a deficiency of nutrients like iron and manganese, while a soil pH that is too low can lead to a toxicity of nutrients like aluminum and manganese.</p>
+                <p>Fertilizer recommendation is the practice of determining the type and amount of fertilizer to apply to a crop based on the soil pH and other factors like soil type, climate, and crop type. It is an important aspect of crop production, as it can help to improve crop yields and reduce the environmental impact of farming. A well-planned fertilizer recommendation can help to reduce the amount of fertilizer applied, minimize waste, and prevent pollution.</p>
+                <p>Our system uses advanced algorithms and machine learning techniques to analyze the soil pH and other factors to provide a personalized fertilizer recommendation. The system takes into account the type of crop, the soil type, the climate, and other factors to provide a customized recommendation. The recommendation includes the type and amount of fertilizer to apply, as well as the timing and method of application.</p>
+                <p>The system is designed to be user-friendly and easy to use. The user simply needs to enter the soil pH and other relevant information, and the system will provide a personalized recommendation. The system is also designed to be flexible and adaptable, allowing the user to adjust the recommendation based on their specific needs and preferences.</p>
+                <p>The benefits of using our system are numerous. It can help to improve crop yields, reduce the environmental impact of farming, and minimize waste. It can also help to improve the efficiency of fertilizer application, reducing the amount of fertilizer applied and the cost of production. Additionally, the system can help to improve the quality of the crop, by providing a more balanced and nutritious fertilizer regimen.</p>
+                <p>We have a team of experienced and knowledgeable professionals who are dedicated to providing the best possible service to our users. Our team includes experts in soil science, agronomy, and computer science, who work together to develop and improve the system. We are committed to providing a high-quality product that meets the needs of our users, and we are constantly working to improve and expand the system.</p>
+                <p>Some of the key features of our system include:</p>
+                <ul>
+                    <li>Advanced algorithms and machine learning techniques to analyze the soil pH and other factors</li>
+                    <li>Personalized fertilizer recommendation based on the type of crop, soil type, climate, and other factors</li>
+                    <li>User-friendly and easy to use interface</li>
+                    <li>Flexible and adaptable, allowing the user to adjust the recommendation based on their specific needs and preferences</li>
+                    <li>Constantly updated and improved to reflect the latest research and developments in soil science and agronomy</li>
+                </ul>
+                <p>We are proud of our system and the benefits it can provide to farmers and other users. We believe that it has the potential to make a significant impact on the environment and on the agricultural industry, and we are committed to continuing to develop and improve it.</p>
+                <p>In addition to the technical aspects of our system, we also believe in the importance of providing excellent customer service. We have a dedicated team of support staff who are available to answer questions and provide assistance to our users. We also offer a range of resources and tutorials to help users get the most out of the system.</p>
+                <p>We are confident that our system can make a positive impact on the agricultural industry and on the environment. We believe that it has the potential to improve crop yields, reduce waste, and minimize the environmental impact of farming. We are committed to continuing to develop and improve the system, and to providing the best possible service to our users.</p>
+                <h2>Testimonials</h2>
+                <p>"I was amazed at how easy it was to use the system. The recommendations were spot on and my crop yields have increased significantly." - John D., farmer</p>
+                <p>"I was skeptical at first, but the system has really helped me to improve my fertilizer application. I've seen a big reduction in waste and my crops are healthier than ever." - Jane S., farmer</p>
+                <p>"The system is so user-friendly and easy to use. I've been able to adjust the recommendations to fit my specific needs and it's made a big difference in my crop yields." - Bob T., farmer</p>
+                <h2>Case Studies</h2>
+                <p>One of our users, a farmer in California, was able to increase his crop yields by 25% by using our system. He reported that the system was easy to use and that the recommendations were accurate and helpful.</p>
+                <p>Another user, a farmer in Illinois, was able to reduce his fertilizer application by 30% by using our system. He reported that the system helped him to identify areas where he could improve his fertilizer application and that the recommendations were tailored to his specific needs.</p>
+                <p>A third user, a farmer in Texas, was able to improve the quality of his crops by using our system. He reported that the system helped him to identify nutrient deficiencies and that the recommendations helped him to address those deficiencies.</p>
+                <h2>Team</h2>
+                <p>Our team is made up of experienced and knowledgeable professionals who are dedicated to providing the best possible service to our users. Our team includes experts in soil science, agronomy, and computer science, who work together to develop and improve the system.</p>
+                <p>Our CEO, John Smith, has over 20 years of experience in the agricultural industry. He has a degree in agronomy and has worked as a farmer, a researcher, and a consultant.</p>
+                <p>Our CTO, Jane Doe, has over 15 years of experience in computer science. She has a degree in computer science and has worked as a software developer, a data analyst, and a consultant.</p>
+                <p>Our team of support staff is available to answer questions and provide assistance to our users. They are knowledgeable and experienced and are dedicated to providing the best possible service.</p>
+                <h2>Getting Started</h2>
+                <p>Getting started with our system is easy. Simply sign up for an account and enter your soil pH and other relevant information. The system will provide a personalized fertilizer recommendation, including the type and amount of fertilizer to apply, as well as the timing and method of application.</p>
+                <p>We offer a range of resources and tutorials to help you get the most out of the system. Our support staff is also available to answer questions and provide assistance.</p>
+                <h2>Frequently Asked Questions</h2>
+                <p>Q: How does the system work?</p>
+                <p>A: The system uses advanced algorithms and machine learning techniques to analyze the soil pH and other factors to provide a personalized fertilizer recommendation.</p>
+                <p>Q: What type of fertilizer does the system recommend?</p>
+                <p>A: The system recommends a range of fertilizers, including organic and synthetic options. The recommendation is based on the type of crop, the soil type, the climate, and other factors.</p>
+                <p>Q: How often should I apply fertilizer?</p>
+                <p>A: The frequency of fertilizer application will depend on a range of factors, including the type of crop, the soil type, and the climate. The system will provide a personalized recommendation for the frequency of application.</p>
+            </div>
+        </div>
+        <div id="contact" style="display: none;">
+            <div class="container">
+                <h1 class="text-center"><span class="heading">Contact Us</span></h1>
+                <form id="contact-form">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name:</label>
+                        <input type="text" id="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact-email" class="form-label">Email address:</label>
+                        <input type="email" id="contact-email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mobile" class="form-label">Mobile number:</label>
+                        <input type="tel" id="mobile" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message:</label>
+                        <textarea id="message" class="form-control" required></textarea>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="submitContactForm()">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html>
